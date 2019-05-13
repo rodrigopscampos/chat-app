@@ -21,9 +21,12 @@ namespace ChatApp
         public event NovaMensagensDelegate AoReceberMensagens;
         public event AlterarListaUsuariosDelegate AoAlterarNovaListaUsuarios;
 
-        int _id;
         int _sequencialMensagens;
         int _sequencialUsuarios;
+
+        private string _apelido;
+        public string Apelido => _apelido;
+
 
         volatile bool _rodando;
         System.Timers.Timer _timer;
@@ -74,19 +77,23 @@ namespace ChatApp
 
         private Mensagem[] PegarNovasMensagens()
         {
-            var result = _httpClient.GetAsync($"/mensagens?destinatario={_id}").Result;
+            var result = _httpClient.GetAsync($"/mensagens?sequencial={_sequencialMensagens}").Result;
             result.EnsureSuccessStatusCode();
 
             var conteudo =
                 JsonConvert.DeserializeObject<Mensagem[]>(result.Content.ReadAsStringAsync().Result);
 
-            _sequencialMensagens = conteudo.Max(c => c.Id);
+            if (conteudo.Any())
+            {
+                _sequencialMensagens = conteudo.Max(c => c.Id);
+            }
+
             return conteudo;
         }
 
         public Usuarios[] PegarNovosUsuarios()
         {
-            var result = _httpClient.GetAsync($"/usuarios?seqnum={_sequencialUsuarios}").Result;
+            var result = _httpClient.GetAsync($"/usuarios?sequencial={_sequencialUsuarios}").Result;
             result.EnsureSuccessStatusCode();
 
             var conteudo =
@@ -95,7 +102,7 @@ namespace ChatApp
             if (conteudo.Any())
             {
                 conteudo = conteudo
-                .Where(c => c.Id != _id)
+                .Where(c => c.Nome != Apelido)
                 .ToArray();
 
                 _sequencialUsuarios = conteudo.Max(c => c.Id);
@@ -104,20 +111,12 @@ namespace ChatApp
             return conteudo;
         }
 
-        public void EnviarMensagem(int destinatario, string texto)
+        public void EnviarMensagem(OutputMensagem mensagem)
         {
-            var json = JsonConvert.SerializeObject(
-                new { remetente = _id, texto = texto, destinatario = destinatario });
+            mensagem.Remetente = _apelido;
 
-            var result = _httpClient.PostAsync("mensagens",
-                new StringContent(json, Encoding.UTF8, "application/json")).Result;
+            var json = JsonConvert.SerializeObject(mensagem);
 
-            result.EnsureSuccessStatusCode();
-        }
-
-        public void EnviarMensagemParaTodos(string texto)
-        {
-            var json = JsonConvert.SerializeObject(new { remetente = _id, texto = texto });
             var result = _httpClient.PostAsync("mensagens",
                 new StringContent(json, Encoding.UTF8, "application/json")).Result;
 
@@ -134,18 +133,16 @@ namespace ChatApp
 
             //content-type: application/json; charset=utf-8 
 
-            resultado.EnsureSuccessStatusCode();
-
             var resultadoContent
-                = JsonConvert.DeserializeObject<InputLogin>(
-                    resultado.Content.ReadAsStringAsync().Result);
+              = JsonConvert.DeserializeObject<InputLogin>(
+                  resultado.Content.ReadAsStringAsync().Result);
 
-            if (!resultadoContent.Sucesso)
+            if (resultado.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
                 throw new Exception(Convert.ToString(resultadoContent.Erro));
             }
 
-            _id = resultadoContent.Id;
+            _apelido = apelido;
         }
 
         public void IniciarRecebimento()

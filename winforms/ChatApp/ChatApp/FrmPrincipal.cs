@@ -4,30 +4,71 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Linq;
+using System.Text;
+using ChatApp.DTO;
 
 namespace ChatApp
 {
-    public partial class FrmPrincipal : Form
+    public partial class FrmPrincipal : FrmBase
     {
-        ApiClient _api;
         List<Usuarios> _usuarios = new List<Usuarios>();
+        StringBuilder _htmlMensagens = new StringBuilder();
+        string _template = @"
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            background-color: snow;
+            margin:0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .msg_box {
+            overflow: hidden;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+            margin:0;
+        }
+
+        .impar {
+            background-color: rgb(166, 201, 233);
+        }
+        
+        .par {
+            overflow: hidden;
+            background-color: rgb(138, 181, 221);
+        }
+        
+        .reservada {
+            background-color: rgb(179, 182, 180);
+        }
+    </style>
+</head>
+
+<body>
+    {{MENSAGENS}}
+</body>
+
+</html>
+";
 
         public FrmPrincipal()
         {
             InitializeComponent();
 
-            _api = new ApiClient();
             _api.AoAlterarNovaListaUsuarios += _api_AoAlterarNovaListaUsuarios;
             _api.AoReceberMensagens += _api_AoReceberMensagens;
         }
 
         private void FrmPrincipal_Load(object sender, EventArgs e)
         {
-            btnEnviar.Enabled = false;
-
-            var random = new Random();
-            txtApelido.Text = "Usuário " + random.Next() % 100;
             lbUsuarios.DisplayMember = "Nome";
+            this.Text = this.Text + " (" + _api.Apelido + ")";
+            _api.IniciarRecebimento();
         }
 
         private void _api_AoReceberMensagens(Mensagem[] mensagens)
@@ -40,17 +81,37 @@ namespace ChatApp
         {
             Invoke(new Action(() =>
             {
-                var remetenteNome = _usuarios
-                    .FirstOrDefault(u => u.Id == mensagem.Remetente)?.Nome
-                    ?? "Você";
+                var destinatario = mensagem.Destinatario;
+                var remetente = mensagem.Remetente;
 
-                var destinatarioNome = _usuarios
-                .FirstOrDefault(u => u.Id == mensagem.Destinatario)?.Nome
-                ?? "Todos";
+                if (destinatario == _api.Apelido)
+                    destinatario = "Você";
 
-                var html = wbMensagens.DocumentText;
-                html += $"<p>{remetenteNome} diz para {destinatarioNome}: {mensagem.Texto}";
-                wbMensagens.DocumentText = html;
+                if (remetente == _api.Apelido)
+                    remetente = "Você";
+
+                var par = (_htmlMensagens.Length + 1) % 2 == 0;
+                var classe = par ? " par " : " impar ";
+
+                var reservadamente = "";
+                if (mensagem.Reservada)
+                {
+                    reservadamente = " (reservadamente)";
+
+                    if (mensagem.Destinatario == _api.Apelido || mensagem.Remetente == _api.Apelido)
+                    {
+                        classe += " reservada ";
+                    }
+                }
+
+
+                _htmlMensagens.AppendLine(
+ $@"
+ <div class='msg_box {classe}'>
+        <span>{remetente} diz{reservadamente} para {destinatario}: {mensagem.Texto}</span>
+    </div>
+");
+                wbMensagens.DocumentText = _template.Replace("{{MENSAGENS}}", _htmlMensagens.ToString());
             }));
         }
 
@@ -69,41 +130,22 @@ namespace ChatApp
             }));
         }
 
-        private void btnConectar_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                _api.FazerLogin(txtApelido.Text);
-
-                lblStatus.Text = "conectado";
-                lblStatus.ForeColor = Color.BlueViolet;
-                btnConectar.Enabled = false;
-                btnEnviar.Enabled = true;
-                txtApelido.Enabled = false;
-
-                _api.IniciarRecebimento();
-            }
-            catch (Exception ex)
-            {
-                MostrarErro(ex);
-            }
-        }
-
         private void btnEnviar_Click(object sender, EventArgs e)
         {
             try
             {
                 var texto = txtNovaMsg.Text;
 
-                if (ckbMsgPrivada.Checked)
+                var destinatario = ((Usuarios)lbUsuarios.SelectedItem).Nome;
+
+                var mensagem = new OutputMensagem
                 {
-                    int destinatario = ((Usuarios)lbUsuarios.SelectedItem).Id;
-                    _api.EnviarMensagem(destinatario, texto);
-                }
-                else
-                {
-                    _api.EnviarMensagemParaTodos(texto);
-                }
+                    Destinatario = destinatario,
+                    Texto = texto,
+                    Reservada = ckbMsgReservada.Checked
+                };
+
+                _api.EnviarMensagem(mensagem);
 
                 txtNovaMsg.Text = "";
             }
@@ -111,11 +153,6 @@ namespace ChatApp
             {
                 MostrarErro(ex);
             }
-        }
-
-        private void MostrarErro(Exception ex)
-        {
-            MessageBox.Show(ex.Message);
         }
     }
 }

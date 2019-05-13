@@ -3,9 +3,9 @@
     public class Mensagem
     {
         public int Id { get; set; }
-        public int Remetente { get; set; }
+        public string Remetente { get; set; }
         public string Texto { get; set; }
-        public int? Destinatario { get; set; }
-        public bool Publica { get; set; }
+        public string Destinatario { get; set; }
+        public bool Reservada { get; set; }
     }
 }
