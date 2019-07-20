@@ -29,6 +29,7 @@ namespace ChatApp
                 _api.FazerLogin(apelido);
 
                 var frmPrincipal = new FrmPrincipal();
+                this.Hide();
                 frmPrincipal.ShowDialog();
                 this.Close();
             }

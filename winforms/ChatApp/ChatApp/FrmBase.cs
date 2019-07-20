@@ -13,7 +13,7 @@ namespace ChatApp
 
         protected void MostrarErro(Exception ex)
         {
-            MessageBox.Show(ex.Message);
+            MessageBox.Show(ex.ToString());
         }
     }
 }

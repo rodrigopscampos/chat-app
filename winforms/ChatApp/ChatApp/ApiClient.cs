@@ -18,15 +18,13 @@ namespace ChatApp
         public delegate void NovaMensagensDelegate(Mensagem[] mensagens);
         public delegate void AlterarListaUsuariosDelegate(Usuarios[] usuarios);
 
+        public string Apelido { get; private set; }
+
         public event NovaMensagensDelegate AoReceberMensagens;
         public event AlterarListaUsuariosDelegate AoAlterarNovaListaUsuarios;
 
         int _sequencialMensagens;
         int _sequencialUsuarios;
-
-        private string _apelido;
-        public string Apelido => _apelido;
-
 
         volatile bool _rodando;
         System.Timers.Timer _timer;
@@ -113,7 +111,7 @@ namespace ChatApp
 
         public void EnviarMensagem(OutputMensagem mensagem)
         {
-            mensagem.Remetente = _apelido;
+            mensagem.Remetente = Apelido;
 
             var json = JsonConvert.SerializeObject(mensagem);
 
@@ -142,7 +140,7 @@ namespace ChatApp
                 throw new Exception(Convert.ToString(resultadoContent.Erro));
             }
 
-            _apelido = apelido;
+            Apelido = apelido;
         }
 
         public void IniciarRecebimento()
