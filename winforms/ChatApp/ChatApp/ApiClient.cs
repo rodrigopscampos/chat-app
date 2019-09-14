@@ -103,7 +103,10 @@ namespace ChatApp
                 .Where(c => c.Nome != Apelido)
                 .ToArray();
 
-                _sequencialUsuarios = conteudo.Max(c => c.Id);
+                if(conteudo.Any())
+                {
+                    _sequencialUsuarios = conteudo.Max(c => c.Id);
+                }
             }
 
             return conteudo;

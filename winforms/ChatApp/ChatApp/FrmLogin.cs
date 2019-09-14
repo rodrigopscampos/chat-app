@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -26,6 +27,7 @@ namespace ChatApp
                 btnEntrar.Text = "Entrando ...";
                 btnEntrar.Enabled = false;
 
+                Thread.Sleep(100);
                 _api.FazerLogin(apelido);
 
                 var frmPrincipal = new FrmPrincipal();
