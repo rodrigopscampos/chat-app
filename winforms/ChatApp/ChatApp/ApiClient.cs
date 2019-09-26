@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,6 +20,7 @@ namespace ChatApp
         public delegate void AlterarListaUsuariosDelegate(Usuarios[] usuarios);
 
         public string Apelido { get; private set; }
+        public string Token { get; private set; }
 
         public event NovaMensagensDelegate AoReceberMensagens;
         public event AlterarListaUsuariosDelegate AoAlterarNovaListaUsuarios;
@@ -144,6 +146,9 @@ namespace ChatApp
             }
 
             Apelido = apelido;
+            Token = resultadoContent.Token;
+
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
         }
 
         public void IniciarRecebimento()
